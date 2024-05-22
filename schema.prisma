@@ -1,0 +1,319 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TransactionStatus {
+  DEBT
+  APPROVED
+  PAID
+}
+
+enum DebtStatus {
+  OPEN
+  CLOSED
+}
+
+enum ContactType {
+  CLIENT
+  PROVIDER
+  EMPLOYEE
+}
+
+enum TransactionType {
+  DEBIT // EXPENSE
+  CREDIT // INCOME
+}
+
+enum TransactionGroup {
+  TRANSACTION
+  PAYMENT
+}
+
+enum BusinessType {
+  PERSONAL // FREELANCER, AUTONOMO
+  COMPANY // PYME, STARTUP
+}
+
+enum UserRole {
+  OWNER
+  EMPLOYEE
+  MANAGER
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  OTHER
+  ONLINE
+  NONE
+}
+
+enum AdminRole {
+  MEMBER // SOLO LECTURA
+  ADMIN // ESCRITURA Y LECTURA
+  SUPER_ADMIN //ACCESO TOTAL
+}
+
+enum AuthSource {
+  GOOGLE
+  FACEBOOK
+  OTP
+}
+
+model User {
+  id         String     @id @default(uuid()) @db.Uuid
+  email      String
+  password   String?
+  AuthSource AuthSource
+  createdAt  DateTime   @default(now())
+  deletedAt  DateTime?
+
+  Account            UserAccount?
+  Business           Business?
+  Contacts           Contact[]
+  Transaction        Transaction[]
+  Debt               Debt[]
+  BusinessMembers    BusinessMember[]
+  BusinessCurrencies BusinessCurrencies[]
+  FinancialAccount   FinancialAccount?
+}
+
+model UserAccount {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  cellPhone   String
+  country     String
+  countryCode String
+  language    String
+  image       String?
+  address     String?
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String @unique @db.Uuid
+}
+
+model Business {
+  id                 String               @id @default(uuid()) @db.Uuid
+  type               BusinessType
+  teamEnabled        Boolean
+  teamMembers        BusinessMember[]
+  multipleCurrencies Boolean
+  financialAccounts  FinancialAccount[]
+  currencies         BusinessCurrencies[]
+  createdAt          DateTime             @default(now())
+  deletedAt          DateTime?
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String @unique @db.Uuid
+}
+
+model Currency {
+  id      String  @id @default(uuid()) @db.Uuid
+  code    String // Código de la moneda (USD, EUR, etc.)
+  symbol  String // Símbolo de la moneda ($, €, etc.)
+  locale  String // Localización de la moneda (en-US, es-ES, etc.)
+  country String
+  image   String?
+  isoCode String?
+
+  financialAccounts FinancialAccount[]
+  bussiness         BusinessCurrencies[]
+}
+
+model BusinessCurrencies {
+  business   Business @relation(fields: [businessId], references: [id])
+  businessId String   @db.Uuid
+  currency   Currency @relation(fields: [currencyId], references: [id])
+  currencyId String   @db.Uuid
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String @db.Uuid
+
+  @@id([businessId, currencyId])
+}
+
+model BusinessMember {
+  id        String    @id @default(uuid()) @db.Uuid
+  role      UserRole
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  business   Business @relation(fields: [businessId], references: [id])
+  businessId String   @db.Uuid
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.Uuid
+}
+
+model Contact {
+  id        String      @id @default(uuid()) @db.Uuid
+  name      String
+  phone     String
+  type      ContactType
+  email     String
+  note      String
+  createdAt DateTime    @default(now())
+  deletedAt DateTime?
+
+  transaction Transaction[]
+  debt        Debt[]
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String @db.Uuid
+}
+
+model Transaction {
+  id             String            @id @default(uuid()) @db.Uuid
+  status         TransactionStatus
+  type           TransactionType
+  total_amount   Float
+  description    String
+  date           String
+  payment_method PaymentMethod?
+  createdAt      DateTime          @default(now())
+  deletedAt      DateTime?
+
+  category           TransactionCategory @relation(fields: [categoryId], references: [id])
+  categoryId         String              @db.Uuid
+  contact            Contact?            @relation(fields: [contactId], references: [id])
+  contactId          String?             @db.Uuid
+  debt               Debt?               @relation(fields: [debtId], references: [id])
+  debtId             String?             @db.Uuid
+  financialAccount   FinancialAccount    @relation(fields: [financialAccountId], references: [id])
+  financialAccountId String              @db.Uuid
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String @db.Uuid
+}
+
+model Debt {
+  id           String          @id @default(uuid()) @db.Uuid
+  initial_date DateTime?       @default(now())
+  total_amount Float
+  type         TransactionType
+  createdAt    DateTime        @default(now())
+  deletedAt    DateTime?
+
+  transactions Transaction[]
+
+  contact            Contact?          @relation(fields: [debtorId], references: [id])
+  debtorId           String?           @db.Uuid
+  financialAccount   FinancialAccount? @relation(fields: [financialAccountId], references: [id])
+  financialAccountId String?           @db.Uuid
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String @db.Uuid
+}
+
+model TransactionCategory {
+  id    String           @id @default(uuid()) @db.Uuid
+  name  String
+  code  String
+  image String
+  type  TransactionType
+  group TransactionGroup
+
+  transaction Transaction[]
+}
+
+model FinancialAccount {
+  id          String    @id @default(uuid()) @db.Uuid
+  accountName String
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+  mainAccount Boolean?
+
+  transactions Transaction[]
+  debts        Debt[]
+
+  currency   Currency @relation(fields: [currencyId], references: [id])
+  currencyId String   @db.Uuid
+  business   Business @relation(fields: [businessId], references: [id])
+  businessId String   @db.Uuid
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String @unique @db.Uuid
+}
+
+model AdminAccount {
+  id       String @id @default(uuid()) @db.Uuid
+  email    String
+  password String
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  adminRole AdminRole
+}
+
+model CountryCode {
+  id      String @id @default(uuid()) @db.Uuid
+  name    String
+  isoCode String
+  prefix  String
+}
+
+model Country {
+  id      String @id @default(uuid()) @db.Uuid
+  name    String
+  isoCode String
+}
+
+model Language {
+  id      String @id @default(uuid()) @db.Uuid
+  name    String
+  isoCode String
+}
+
+enum AppStatus {
+  LIVE // OK
+  ERROR // ERROR
+  DEPRECATED // OBSOLETO
+  NEEDS_UPDATE // NECESITA ACTUALIZACIÓN
+}
+
+enum ApiStatus {
+  LIVE
+  ERROR
+  WORKING_IN_PROGRESS
+}
+
+model AppVersion {
+  id          String    @id @default(uuid()) @db.Uuid
+  version     String
+  releaseDate String
+  description String
+  available   Boolean
+  status      AppStatus
+  message     String
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+}
+
+model System {
+  id        String    @id @default(uuid()) @db.Uuid
+  available Boolean
+  status    ApiStatus
+  message   String
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+}
+
+model Link {
+  id   String @id @default(uuid()) @db.Uuid
+  name String
+  url  String
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+}
