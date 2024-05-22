@@ -12,7 +12,7 @@ export const getUserById = async (req: Request, res: Response) => {
       select: {
         id: true,
         email: true,
-        UserAccount: {
+        Account: {
           select: {
             name: true,
             countryCode: true,
@@ -26,10 +26,10 @@ export const getUserById = async (req: Request, res: Response) => {
     const formattedUser = {
       id: user?.id,
       email: user?.email,
-      fullName: user?.UserAccount ? user?.UserAccount?.name : null,
-      countryCode: user?.UserAccount ? user?.UserAccount?.countryCode : null,
-      cellPhone: user?.UserAccount ? user?.UserAccount?.cellPhone : null,
-      country: user?.UserAccount ? user?.UserAccount?.country : null,
+      fullName: user?.Account ? user?.Account?.name : null,
+      countryCode: user?.Account ? user?.Account?.countryCode : null,
+      cellPhone: user?.Account ? user?.Account?.cellPhone : null,
+      country: user?.Account ? user?.Account?.country : null,
     };
 
     res.status(200).json(formattedUser);

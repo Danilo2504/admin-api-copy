@@ -7,81 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum TransactionStatus {
-  DEBT
-  APPROVED
-  PAID
-}
-
-enum DebtStatus {
-  OPEN
-  CLOSED
-}
-
-enum ContactType {
-  CLIENT
-  PROVIDER
-  EMPLOYEE
-}
-
-enum TransactionType {
-  DEBIT // EXPENSE
-  CREDIT // INCOME
-}
-
-enum TransactionGroup {
-  TRANSACTION
-  PAYMENT
-}
-
-enum BusinessType {
-  PERSONAL // FREELANCER, AUTONOMO
-  COMPANY // PYME, STARTUP
-}
-
-enum UserRole {
-  OWNER
-  EMPLOYEE
-  MANAGER
-}
-
-enum PaymentMethod {
-  CASH
-  CARD
-  BANK_TRANSFER
-  OTHER
-  ONLINE
-  NONE
-}
-
-enum AdminRole {
-  MEMBER // SOLO LECTURA
-  ADMIN // ESCRITURA Y LECTURA
-  SUPER_ADMIN //ACCESO TOTAL
-}
-
-enum AuthSource {
-  GOOGLE
-  FACEBOOK
-  OTP
-}
-
 model User {
-  id         String     @id @default(uuid()) @db.Uuid
-  email      String
-  password   String?
-  AuthSource AuthSource
-  createdAt  DateTime   @default(now())
-  deletedAt  DateTime?
-
-  Account            UserAccount?
+  id                 String               @id @default(uuid()) @db.Uuid
+  email              String
+  password           String?
+  createdAt          DateTime             @default(now())
+  deletedAt          DateTime?
+  AuthSource         AuthSource
   Business           Business?
-  Contacts           Contact[]
-  Transaction        Transaction[]
-  Debt               Debt[]
-  BusinessMembers    BusinessMember[]
   BusinessCurrencies BusinessCurrencies[]
+  BusinessMembers    BusinessMember[]
+  Contacts           Contact[]
+  Debt               Debt[]
   FinancialAccount   FinancialAccount?
+  Transaction        Transaction[]
+  Account            UserAccount?
 }
 
 model UserAccount {
@@ -90,167 +30,148 @@ model UserAccount {
   cellPhone   String
   country     String
   countryCode String
-  language    String
   image       String?
   address     String?
   createdAt   DateTime  @default(now())
   deletedAt   DateTime?
-
-  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId String @unique @db.Uuid
+  ownerId     String    @unique @db.Uuid
+  language    String
+  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model Business {
   id                 String               @id @default(uuid()) @db.Uuid
   type               BusinessType
   teamEnabled        Boolean
-  teamMembers        BusinessMember[]
   multipleCurrencies Boolean
-  financialAccounts  FinancialAccount[]
-  currencies         BusinessCurrencies[]
   createdAt          DateTime             @default(now())
   deletedAt          DateTime?
-
-  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId String @unique @db.Uuid
+  ownerId            String               @unique @db.Uuid
+  owner              User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  currencies         BusinessCurrencies[]
+  teamMembers        BusinessMember[]
+  financialAccounts  FinancialAccount[]
 }
 
 model Currency {
-  id      String  @id @default(uuid()) @db.Uuid
-  code    String // Código de la moneda (USD, EUR, etc.)
-  symbol  String // Símbolo de la moneda ($, €, etc.)
-  locale  String // Localización de la moneda (en-US, es-ES, etc.)
-  country String
-  image   String?
-  isoCode String?
-
-  financialAccounts FinancialAccount[]
+  id                String               @id @default(uuid()) @db.Uuid
+  code              String
+  symbol            String
+  locale            String
+  country           String
+  image             String?
+  isoCode           String?
   bussiness         BusinessCurrencies[]
+  financialAccounts FinancialAccount[]
 }
 
 model BusinessCurrencies {
-  business   Business @relation(fields: [businessId], references: [id])
   businessId String   @db.Uuid
-  currency   Currency @relation(fields: [currencyId], references: [id])
   currencyId String   @db.Uuid
-
-  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId String @db.Uuid
+  ownerId    String   @db.Uuid
+  business   Business @relation(fields: [businessId], references: [id])
+  currency   Currency @relation(fields: [currencyId], references: [id])
+  owner      User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   @@id([businessId, currencyId])
 }
 
 model BusinessMember {
-  id        String    @id @default(uuid()) @db.Uuid
-  role      UserRole
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
-
-  business   Business @relation(fields: [businessId], references: [id])
-  businessId String   @db.Uuid
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String @db.Uuid
+  id         String    @id @default(uuid()) @db.Uuid
+  role       UserRole
+  createdAt  DateTime  @default(now())
+  deletedAt  DateTime?
+  businessId String    @db.Uuid
+  userId     String    @db.Uuid
+  business   Business  @relation(fields: [businessId], references: [id])
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Contact {
-  id        String      @id @default(uuid()) @db.Uuid
-  name      String
-  phone     String
-  type      ContactType
-  email     String
-  note      String
-  createdAt DateTime    @default(now())
-  deletedAt DateTime?
-
-  transaction Transaction[]
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String
+  phone       String
+  type        ContactType
+  email       String
+  note        String
+  createdAt   DateTime      @default(now())
+  deletedAt   DateTime?
+  ownerId     String        @db.Uuid
+  owner       User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   debt        Debt[]
-
-  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId String @db.Uuid
+  transaction Transaction[]
 }
 
 model Transaction {
-  id             String            @id @default(uuid()) @db.Uuid
-  status         TransactionStatus
-  type           TransactionType
-  total_amount   Float
-  description    String
-  date           String
-  payment_method PaymentMethod?
-  createdAt      DateTime          @default(now())
-  deletedAt      DateTime?
-
-  category           TransactionCategory @relation(fields: [categoryId], references: [id])
+  id                 String              @id @default(uuid()) @db.Uuid
+  status             TransactionStatus
+  type               TransactionType
+  total_amount       Float
+  description        String
+  date               String
+  payment_method     PaymentMethod?
+  createdAt          DateTime            @default(now())
+  deletedAt          DateTime?
   categoryId         String              @db.Uuid
-  contact            Contact?            @relation(fields: [contactId], references: [id])
   contactId          String?             @db.Uuid
-  debt               Debt?               @relation(fields: [debtId], references: [id])
   debtId             String?             @db.Uuid
-  financialAccount   FinancialAccount    @relation(fields: [financialAccountId], references: [id])
   financialAccountId String              @db.Uuid
-
-  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId String @db.Uuid
+  ownerId            String              @db.Uuid
+  category           TransactionCategory @relation(fields: [categoryId], references: [id])
+  contact            Contact?            @relation(fields: [contactId], references: [id])
+  debt               Debt?               @relation(fields: [debtId], references: [id])
+  financialAccount   FinancialAccount    @relation(fields: [financialAccountId], references: [id])
+  owner              User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model Debt {
-  id           String          @id @default(uuid()) @db.Uuid
-  initial_date DateTime?       @default(now())
-  total_amount Float
-  type         TransactionType
-  createdAt    DateTime        @default(now())
-  deletedAt    DateTime?
-
-  transactions Transaction[]
-
-  contact            Contact?          @relation(fields: [debtorId], references: [id])
+  id                 String            @id @default(uuid()) @db.Uuid
+  initial_date       DateTime?         @default(now())
+  total_amount       Float
+  type               TransactionType
+  createdAt          DateTime          @default(now())
+  deletedAt          DateTime?
   debtorId           String?           @db.Uuid
-  financialAccount   FinancialAccount? @relation(fields: [financialAccountId], references: [id])
   financialAccountId String?           @db.Uuid
-
-  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId String @db.Uuid
+  ownerId            String            @db.Uuid
+  contact            Contact?          @relation(fields: [debtorId], references: [id])
+  financialAccount   FinancialAccount? @relation(fields: [financialAccountId], references: [id])
+  owner              User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  transactions       Transaction[]
 }
 
 model TransactionCategory {
-  id    String           @id @default(uuid()) @db.Uuid
-  name  String
-  code  String
-  image String
-  type  TransactionType
-  group TransactionGroup
-
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  code        String
+  image       String
+  type        TransactionType
+  group       TransactionGroup
   transaction Transaction[]
 }
 
 model FinancialAccount {
-  id          String    @id @default(uuid()) @db.Uuid
-  accountName String
-  createdAt   DateTime  @default(now())
-  deletedAt   DateTime?
-  mainAccount Boolean?
-
-  transactions Transaction[]
+  id           String        @id @default(uuid()) @db.Uuid
+  accountName  String
+  createdAt    DateTime      @default(now())
+  deletedAt    DateTime?
+  currencyId   String        @db.Uuid
+  businessId   String        @db.Uuid
+  ownerId      String        @unique @db.Uuid
+  mainAccount  Boolean?
   debts        Debt[]
-
-  currency   Currency @relation(fields: [currencyId], references: [id])
-  currencyId String   @db.Uuid
-  business   Business @relation(fields: [businessId], references: [id])
-  businessId String   @db.Uuid
-
-  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId String @unique @db.Uuid
+  business     Business      @relation(fields: [businessId], references: [id])
+  currency     Currency      @relation(fields: [currencyId], references: [id])
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
 }
 
 model AdminAccount {
-  id       String @id @default(uuid()) @db.Uuid
-  email    String
-  password String
-
+  id        String    @id @default(uuid()) @db.Uuid
+  email     String
+  password  String
   createdAt DateTime  @default(now())
   deletedAt DateTime?
-
   adminRole AdminRole
 }
 
@@ -273,19 +194,6 @@ model Language {
   isoCode String
 }
 
-enum AppStatus {
-  LIVE // OK
-  ERROR // ERROR
-  DEPRECATED // OBSOLETO
-  NEEDS_UPDATE // NECESITA ACTUALIZACIÓN
-}
-
-enum ApiStatus {
-  LIVE
-  ERROR
-  WORKING_IN_PROGRESS
-}
-
 model AppVersion {
   id          String    @id @default(uuid()) @db.Uuid
   version     String
@@ -294,9 +202,8 @@ model AppVersion {
   available   Boolean
   status      AppStatus
   message     String
-
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
 }
 
 model System {
@@ -304,16 +211,86 @@ model System {
   available Boolean
   status    ApiStatus
   message   String
-
   createdAt DateTime  @default(now())
   deletedAt DateTime?
 }
 
 model Link {
-  id   String @id @default(uuid()) @db.Uuid
-  name String
-  url  String
-
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  url       String
   createdAt DateTime  @default(now())
   deletedAt DateTime?
+}
+
+enum TransactionStatus {
+  DEBT
+  APPROVED
+  PAID
+}
+
+enum DebtStatus {
+  OPEN
+  CLOSED
+}
+
+enum ContactType {
+  CLIENT
+  PROVIDER
+  EMPLOYEE
+}
+
+enum TransactionType {
+  DEBIT
+  CREDIT
+}
+
+enum TransactionGroup {
+  TRANSACTION
+  PAYMENT
+}
+
+enum BusinessType {
+  PERSONAL
+  COMPANY
+}
+
+enum UserRole {
+  OWNER
+  EMPLOYEE
+  MANAGER
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  OTHER
+  ONLINE
+  NONE
+}
+
+enum AdminRole {
+  MEMBER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum AuthSource {
+  GOOGLE
+  FACEBOOK
+  OTP
+}
+
+enum AppStatus {
+  LIVE
+  ERROR
+  DEPRECATED
+  NEEDS_UPDATE
+}
+
+enum ApiStatus {
+  LIVE
+  ERROR
+  WORKING_IN_PROGRESS
 }

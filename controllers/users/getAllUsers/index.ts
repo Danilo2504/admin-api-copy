@@ -35,7 +35,7 @@ export const getAllUsers = async (
           id: true,
           email: true,
           deletedAt: true,
-          UserAccount: {
+          Account: {
             select: {
               name: true,
               country: true,
@@ -54,7 +54,7 @@ export const getAllUsers = async (
           id: true,
           email: true,
           deletedAt: true,
-          UserAccount: {
+          Account: {
             select: {
               name: true,
               country: true,
@@ -66,7 +66,7 @@ export const getAllUsers = async (
         where: {
           OR: [
             {
-              UserAccount: {
+              Account: {
                 name: {
                   contains: search,
                   mode: "insensitive",
@@ -74,7 +74,7 @@ export const getAllUsers = async (
               },
             },
             {
-              UserAccount: {
+              Account: {
                 cellPhone: {
                   contains: search,
                 },
@@ -98,10 +98,10 @@ export const getAllUsers = async (
       .map((user) => ({
         id: user?.id,
         email: user?.email,
-        fullName: user?.UserAccount?.name,
-        countryCode: user?.UserAccount?.countryCode,
-        cellPhone: user?.UserAccount?.cellPhone,
-        country: user?.UserAccount?.country,
+        fullName: user?.Account?.name,
+        countryCode: user?.Account?.countryCode,
+        cellPhone: user?.Account?.cellPhone,
+        country: user?.Account?.country,
       }));
     res.status(200).json(formattedUsers);
   } catch (error) {
