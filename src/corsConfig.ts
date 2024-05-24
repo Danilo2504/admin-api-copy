@@ -1,6 +1,6 @@
 const allowedOrigins: string[] = [
   "https://maui-admin.vercel.app",
-  "https://maui-admin.netlify.app",
+  "https://maui-admin.netlify.app/v1",
 ];
 
 if (process.env?.DEV) allowedOrigins.push("http://localhost:3000");
